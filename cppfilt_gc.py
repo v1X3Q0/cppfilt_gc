@@ -23,20 +23,29 @@ def namespaceprepend(fieldstr, classname):
         namespaceclass = namespaceclass.group(2)[0:namespaceclass_len]
     return fieldstr, namespaceclass
 
+def outfuncformat(name_func, arglist):
+    out_str = None
+    if name_func != '':
+        out_str = ''
+        out_str += name_func
+        out_str += '('
+        if len(arglist) > 0:
+            for i in range(0, len(arglist) - 1):
+                out_str += arglist[i] + ', '
+            out_str += arglist[len(arglist) - 1]
+        out_str += ')'
+        # print(out_str)
+    return out_str
+
 def fieldtype(typestr: str, classtype=False, classptr=True):
     arglist = []
     clsptr = '*'
     # print(typestr)
-    # characters are lcefib
-    typestr.count('f')
-    typestr.count('l')
-    typestr.count('c')
-    typestr.count('i')
-    typestr.count('b')
 
     if classptr == False:
         clsptr = ''
     
+    # characters are lcefib
     if classtype == False:
         if typestr == 'Fv':
             arglist = arglist
@@ -54,6 +63,8 @@ def fieldtype(typestr: str, classtype=False, classptr=True):
                     arglist.append('long')
                 elif typeparm == 'c':
                     arglist.append('char*')
+                elif typeparm == 's':
+                    arglist.append('const char*')
                 elif typeparm == 'f':
                     arglist.append('double')
                 elif typeparm == 'v':
@@ -99,15 +110,35 @@ def fieldsparsing(fieldstr: str):
     return arglist
 
 def cppfilt_gc(name: str):
-    unscoped_func = re.match(r'([a-zA-Z_][a-zA-Z0-9_<>,]*)__F([a-zA-Z_0-9]+)', name)
+    unscoped_func = re.match(r'([a-zA-Z_][a-zA-Z0-9_<>,]*)__(F[a-zA-Z_0-9]+)', name)
     class_func = re.match(r'([a-zA-Z_][a-zA-Z0-9_<>,]*)__(Q2)?([0-9]+)([a-zA-Z_][a-zA-Z0-9_<>,]+)', name)
     ctr_func = re.match(r'__([a-z]{2,3})__(Q2)?([a-zA-Z0-9_<>,]+)', name)
+    cast_func = re.match(r'__op([a-zA-Z]+)__(Q2)?([a-zA-Z0-9_<>,]+)', name)
     arglist = []
     name_func = ''
-    classname = ''
+    fieldstr = namespacename = classname = classnamenet = ''
+    # __opPCc__6StringCFv
+    if cast_func != None:
+        fieldstr = cast_func.group(1)
+        rettype=fieldsparsing(fieldstr)
+        rettype = rettype[0]
+        if '*' in rettype:
+            rettype = rettype.replace('*', '_ptr')
+        if cast_func.group(3)[0].isnumeric() == True:
+            cast_func = re.match(r'__([a-zA-Z]+)__(Q2)?([0-9]+)([a-zA-Z_][a-zA-Z0-9_<>,]+)', name)
+            classname_len = int(cast_func.group(3))
+            classname = cast_func.group(4)[0:classname_len]
+            classname = templatestring(classname)
+            fieldstr = cast_func.group(4)[classname_len:]
+            classnamenet = namespacename = classname
+            fieldstr, classname = namespaceprepend(fieldstr, classname)
+        else:
+            fieldstr = cast_func.group(3)
+        if namespacename != classname:
+            classnamenet = namespacename + '::' + classname
+        name_func = classnamenet + '::cast_' + rettype        
     # __ct__17ZeroParticleCacheFP9ZeroVideoPCc19ZeroRenderBlendMode
-    if (ctr_func != None):
-        fieldstr = namespacename = classname = classnamenet = ''
+    elif (ctr_func != None):
         # these seem to be pure, or empty
         if ctr_func.group(3)[0].isnumeric() == True:
             ctr_func = re.match(r'__([a-z]{2,3})__(Q2)?([0-9]+)([a-zA-Z_][a-zA-Z0-9_<>,]+)', name)
@@ -141,6 +172,8 @@ def cppfilt_gc(name: str):
             name_func = "operator new"
         elif ctr_func.group(1) == 'pl':
             name_func = "std::copy"
+        elif ctr_func.group(1) == 'apl':
+            name_func = "std::move"
         elif ctr_func.group(1) == 'pp':
             name_func = classnamenet
         # technically the q2 functions seem to be pure, but we don't have to care
@@ -175,17 +208,7 @@ def cppfilt_gc(name: str):
         arglist += fieldtype(classnamenet, True)
         arglist += fieldsparsing(fieldstr)
     # format the output funcname
-    out_str = ''
-    if name_func != '':
-        out_str += name_func
-        out_str += '('
-        if len(arglist) > 0:
-            for i in range(0, len(arglist) - 1):
-                out_str += arglist[i] + ', '
-            out_str += arglist[len(arglist) - 1]
-        out_str += ')'
-        # print(out_str)
-    return out_str
+    return outfuncformat(name_func, arglist)
 
 def main(args):
     from unit_tests import unittest
