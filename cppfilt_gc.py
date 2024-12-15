@@ -160,22 +160,37 @@ def cppfilt_gc(name: str):
             if classnamenet != '':
                 name_func = classnamenet + "::operator delete"
             else:
-                name_func = "operator delete"
+                name_func = "delete"
         elif ctr_func.group(1) == 'dla':
-            name_func = "operator delete"
+            if classnamenet != '':
+                name_func = classnamenet + "::operator delete[]"
+            else:
+                name_func = "delete[]"
         elif ctr_func.group(1) == 'nw':
             if classnamenet != '':
                 name_func = classnamenet + "::operator new"
             else:
-                name_func = "operator new"
+                name_func = "new"
         elif ctr_func.group(1) == 'nwa':
-            name_func = "operator new"
-        elif ctr_func.group(1) == 'pl':
-            name_func = "std::copy"
+            name_func = "new[]"
+        # operators, can also be globally affiliated
+        classnamenetcolon = classnamenet
+        if classnamenet != "":
+            classnamenetcolon = classnamenet + "::"
+        if ctr_func.group(1) == 'pl':
+            name_func = classnamenetcolon + "operator+"
+        elif ctr_func.group(1) == 'ml':
+            name_func = classnamenetcolon + "operator*"
+        elif ctr_func.group(1) == 'as':
+            name_func = classnamenetcolon + "operator="
+        elif ctr_func.group(1) == 'mi':
+            name_func = classnamenetcolon + "operator-"
         elif ctr_func.group(1) == 'apl':
-            name_func = "std::move"
+            name_func = classnamenetcolon + "std::move"
         elif ctr_func.group(1) == 'pp':
-            name_func = classnamenet
+            name_func = classnamenetcolon + "operator++"
+        elif ctr_func.group(1) == 'mm':
+            name_func = classnamenetcolon + "operator--"
         # technically the q2 functions seem to be pure, but we don't have to care
         # about those. if we do, we act on the group1
         # if ctr_func.group(1) != None:
