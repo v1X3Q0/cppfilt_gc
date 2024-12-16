@@ -186,7 +186,11 @@ def cppfilt_gc(name: str):
         elif ctr_func.group(1) == 'mi':
             name_func = classnamenetcolon + "operator-"
         elif ctr_func.group(1) == 'apl':
-            name_func = classnamenetcolon + "std::move"
+            name_func = classnamenetcolon + "operator+="
+        elif ctr_func.group(1) == 'ami':
+            name_func = classnamenetcolon + "operator-="
+        elif ctr_func.group(1) == 'vc':
+            name_func = classnamenetcolon + "operator[]"
         elif ctr_func.group(1) == 'pp':
             name_func = classnamenetcolon + "operator++"
         elif ctr_func.group(1) == 'mm':
